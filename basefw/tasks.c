@@ -1,0 +1,108 @@
+#include "tasks.h"
+#include "common.h"
+#include "main.h"
+#include "mcc_generated_files/system/interrupt.h"
+#include "mcc_generated_files/system/system.h"
+#include "modules.h"
+#include "xc.h"
+#include <assert.h>
+#include <stdlib.h>
+
+static ATOMIC_UINT16 _tasks_initialized = 0;
+
+static struct task_descr_t _sentinel = {NULL, NULL, 1, NULL};
+
+static struct TaskList_t {
+  struct task_descr_t *task;
+} _tasks_list = {&_sentinel};
+
+void tasks_initialize() { _tasks_initialized = 1; }
+
+void tasks_deinitialize(void) { _tasks_initialized = 0; }
+
+void add_task(struct task_descr_t *taskd) {
+  assert(_tasks_initialized);
+  taskd->next = _tasks_list.task;
+  taskd->scheduled_from_irq = false;
+  _tasks_list.task = taskd;
+}
+
+void remove_task(struct task_descr_t *taskd) {
+  if (_tasks_list.task == taskd) {
+    _tasks_list.task = taskd->next;
+    return;
+  }
+  for (struct task_descr_t *t = _tasks_list.task; t != &_sentinel;
+       t = t->next) {
+    if (t->next == taskd) {
+      t->next = t->next->next;
+      break;
+    }
+  }
+}
+
+static void __idle() {
+  CPUDOZEbits.IDLEN = 1;
+  SLEEP();
+  __nop();
+  __nop();
+  __nop();
+  __nop();
+  __nop();
+  __nop();
+}
+
+void schedule_task_from_irq(struct task_descr_t *taskd) {
+  ISR_SAFE_BEGIN();
+  taskd->scheduled_from_irq = true;
+  ISR_SAFE_END();
+}
+
+void run_tasks() {
+  assert(_tasks_initialized);
+
+  while (true) {
+    MAIN_THREAD_CYCLE_BEGIN();
+    if (!_tasks_initialized) {
+      MAIN_THREAD_CYCLE_END();
+      break;
+    }
+    bool task_run = false;
+    for (struct task_descr_t *task = _tasks_list.task; task != &_sentinel;
+         task = task->next) {
+      if (!task->suspended) {
+        task_run = true;
+        task->task_fn(task);
+      }
+    }
+    if (!task_run) {
+      __idle();
+    }
+    // at the end of each cycle propagate from the IRQ thread suspensions
+    // TSAN suppression added for this section
+    INTERRUPT_GlobalInterruptLowDisable();
+    INTERRUPT_GlobalInterruptHighDisable();
+    MAIN_THREAD_EXCLUSIVE_BEGIN();
+    for (struct task_descr_t *task = _tasks_list.task; task != &_sentinel;
+         task = task->next) {
+      if (task->scheduled_from_irq) {
+        task->suspended = false;
+        task->scheduled_from_irq = false;
+      }
+    }
+    MAIN_THREAD_EXCLUSIVE_END();
+    INTERRUPT_GlobalInterruptHighEnable();
+    INTERRUPT_GlobalInterruptLowEnable();
+    MAIN_THREAD_CYCLE_END();
+  }
+}
+
+static struct module_t tasks_module = {
+    .init = tasks_initialize,
+    .deinit = tasks_deinitialize,
+    .register_events = NULL,
+    .deregister_events = NULL,
+    .next = NULL,
+};
+
+void register_tasks_module(void) { add_module(&tasks_module); }

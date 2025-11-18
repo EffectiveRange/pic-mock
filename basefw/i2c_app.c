@@ -12,7 +12,7 @@ void I2C1_Close(void);
 void I2C1_BusReset(void);
 
 // Private functions
-
+//
 // Private variable
 // NOTES:
 // BYTE 1 MSB is sticky bit
