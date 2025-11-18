@@ -2,11 +2,12 @@
 #include "i2c_app.h"
 #include "i2c_regs_data.h"
 #include "main.h"
-#include "mcc_generated_files/system/system.h"
 #include "modules.h"
 #include "tasks.h"
 #include "timers.h"
 #include "xc.h"
+
+#include <mcc_generated_files/system/system.h>
 
 void I2C1_Close(void);
 void I2C1_BusReset(void);
@@ -19,6 +20,8 @@ void I2C1_BusReset(void);
 static struct i2c_state {
   uint16_t write_cnt_main;
   uint8_t txn_error_cnt_main;
+  uint8_t client_register_cnt;
+  void (*initcb)(void);
   ///////////////////////////
   volatile uint8_t client_location;
   volatile uint8_t txn_error_cnt_isr;
@@ -137,26 +140,14 @@ bool isr_i2c_client_application(i2c_client_transfer_event_t event) {
   return true;
 }
 
-void i2c_switch_mode(enum I2C1_Mode new_mode) {
-  if (new_mode == I2C1_Current_Mode()) {
-    return;
-  }
-  I2C1_Switch_Mode(new_mode);
-  if (new_mode == I2C1_HOST_MODE) {
-    // I2C1_Host_ReadyCallbackRegister(I2CSuccess);
-    // I2C1_Host_CallbackRegister(I2CError);
-    //        I2C_SEL_N_SetLow(); //disable PI from I2C bus
-  } else if (new_mode == I2C1_CLIENT_MODE) {
-    I2C1_Client.CallbackRegister(isr_i2c_client_application);
-  }
-}
-
-void i2c_app_initialize(void) {
-  for (int i = 0; i < I2C_CLIENT_LOCATION_SIZE; i++) {
+void i2c_app_initialize() {
+  for (int i = 0; i < _i2c_state.client_register_cnt; i++) {
     i2c_shadow_map[i] = i2c_reg_map[i];
   }
   add_task(&i2c_app_task);
-  I2C1_Multi_Initialize();
+  if (_i2c_state.initcb) {
+    _i2c_state.initcb();
+  }
   I2C1_Client.CallbackRegister(isr_i2c_client_application);
 }
 
@@ -164,7 +155,7 @@ void i2c_app_initialize(void) {
 // with interrupts disabled
 static void reconcile_i2c_writes(bool txn_error) {
   struct i2c_reg_descr *curr_descr = &i2c_reg_defs[0];
-  for (int i = 0; i < I2C_CLIENT_LOCATION_SIZE; i++, curr_descr++) {
+  for (int i = 0; i < _i2c_state.client_register_cnt; i++, curr_descr++) {
     // if any error happened, then always prefer the main register
     // map content
     if (txn_error && curr_descr->written_by_isr != 1) {
@@ -193,7 +184,7 @@ static void reconcile_i2c_writes(bool txn_error) {
 static void notify_write_listeners(bool writes_happened) {
   if (writes_happened) {
     struct i2c_reg_descr *curr_descr = &i2c_reg_defs[0];
-    for (int i = 0; i < I2C_CLIENT_LOCATION_SIZE; i++, ++curr_descr) {
+    for (int i = 0; i < _i2c_state.client_register_cnt; i++, ++curr_descr) {
       if (curr_descr->invoke_task == 1) {
         curr_descr->invoke_task = 0;
         for (struct i2c_write_listener_t *curr_task = curr_descr->task;
@@ -231,7 +222,7 @@ void i2c_app_deinitialize(void) { remove_task(&i2c_app_task); }
 
 void i2c_register_write_listener(uint8_t address,
                                  struct i2c_write_listener_t *task) {
-  if (address >= I2C_CLIENT_LOCATION_SIZE) {
+  if (address >= _i2c_state.client_register_cnt) {
     return;
   }
   struct i2c_reg_descr *curr_descr = &i2c_reg_defs[address];
@@ -272,4 +263,9 @@ static struct module_t _module = {
     .deregister_events = NULL,
     .next = NULL,
 };
-void register_i2c_app_module() { add_module(&_module); }
+void register_i2c_app_module(uint8_t client_register_cnt,
+                             void (*initcb)(void)) {
+  _i2c_state.client_register_cnt = client_register_cnt;
+  _i2c_state.initcb = initcb;
+  add_module(&_module);
+}
