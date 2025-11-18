@@ -1,7 +1,9 @@
 
 function(add_mock_library TARGET_NAME)
 
-execute_process(COMMAND bash -c "find /opt/microchip/mplabx -name ${TARGET_NAME}.h" OUTPUT_VARIABLE ${TARGET_NAME}_FILE)
+execute_process(COMMAND bash -c "find /opt/microchip/mplabx -name ${TARGET_NAME}.h" 
+OUTPUT_VARIABLE ${TARGET_NAME}_FILE
+COMMAND_ERROR_IS_FATAL ANY)
 
 if(NOT ${TARGET_NAME}_FILE)
     message(FATAL_ERROR "${TARGET_NAME}_FILE not found")
