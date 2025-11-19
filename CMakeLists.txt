@@ -8,6 +8,4 @@ include(FwVer)
 include(MockPIC)
 include(PICBuild)
 
-add_library(basefw SHARED basefw/i2c_app.c)
-
 
