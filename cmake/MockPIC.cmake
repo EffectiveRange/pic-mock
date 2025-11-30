@@ -26,8 +26,12 @@ add_custom_command(
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
     )
 
+add_library(mock_${TARGET_NAME}_base SHARED ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}.c )
+target_include_directories(mock_${TARGET_NAME}_base PUBLIC ${CMAKE_CURRENT_BINARY_DIR} )
+
+target_link_libraries(${APP_LIB} PUBLIC mock_${TARGET_NAME}_base)
+
 add_library(mock_${TARGET_NAME} SHARED 
-${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}.c  
 ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../src/mock_hw.cpp 
 ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../src/test_main.cpp
 ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../basefw/i2c_app.c
@@ -36,7 +40,7 @@ ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../basefw/tasks.c
 ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../basefw/timers.c
 )
 
-target_include_directories(${APP_LIB} PUBLIC ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../basefw ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../include ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(${APP_LIB} PUBLIC ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../basefw ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../include )
 
 target_include_directories(mock_${TARGET_NAME} PUBLIC ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../../ ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../include ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../basefw)
 
