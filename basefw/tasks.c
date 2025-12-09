@@ -42,14 +42,6 @@ void remove_task(struct task_descr_t *taskd) {
 }
 
 static void __idle() {
-  CPUDOZEbits.IDLEN = 1;
-  SLEEP();
-  __nop();
-  __nop();
-  __nop();
-  __nop();
-  __nop();
-  __nop();
 }
 
 void schedule_task_from_irq(struct task_descr_t *taskd) {
@@ -80,9 +72,6 @@ void run_tasks() {
     }
     // at the end of each cycle propagate from the IRQ thread suspensions
     // TSAN suppression added for this section
-    INTERRUPT_GlobalInterruptLowDisable();
-    INTERRUPT_GlobalInterruptHighDisable();
-    MAIN_THREAD_EXCLUSIVE_BEGIN();
     for (struct task_descr_t *task = _tasks_list.task; task != &_sentinel;
          task = task->next) {
       if (task->scheduled_from_irq) {
@@ -90,9 +79,6 @@ void run_tasks() {
         task->scheduled_from_irq = false;
       }
     }
-    MAIN_THREAD_EXCLUSIVE_END();
-    INTERRUPT_GlobalInterruptHighEnable();
-    INTERRUPT_GlobalInterruptLowEnable();
     MAIN_THREAD_CYCLE_END();
   }
 }
