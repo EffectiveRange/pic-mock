@@ -7,13 +7,15 @@
 
 #ifndef I2C_APP_H
 #define I2C_APP_H
-#include "mcc_generated_files/i2c_host/i2c1.h"
-#include "mcc_generated_files/i2c_host/i2c1_client.h"
 #include <stdint.h>
+#include <stdbool.h>
+#include <mcc_generated_files/i2c_client/i2c_client_types.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+
 
 #define I2C_TRY_CNT 3U
 #define I2C_TMOUT_MS 100U // todo check if lower is better

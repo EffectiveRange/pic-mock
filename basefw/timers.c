@@ -1,7 +1,7 @@
 #include "timers.h"
 #include "debug.h"
 #include "mcc_generated_files/system/system.h"
-#include "mcc_generated_files/timer/timer_interface.h"
+#include "mcc_generated_files/timer/tmr0.h"
 #include "modules.h"
 #include "tasks.h"
 #include "xc.h"

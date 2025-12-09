@@ -9,6 +9,9 @@
 
 #include <mcc_generated_files/system/system.h>
 
+#include <mcc_generated_files/i2c_client/i2c_client_interface.h>
+#include <mcc_generated_files/i2c_client/i2c1.h>
+
 void I2C1_Close(void);
 void I2C1_BusReset(void);
 
