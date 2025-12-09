@@ -26,7 +26,7 @@ add_custom_command(
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
     )
 
-add_library(mock_${TARGET_NAME}_base SHARED ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}.c )
+add_library(mock_${TARGET_NAME}_base SHARED ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}.c ${CMAKE_CURRENT_BINARY_DIR}/version.h )
 target_include_directories(mock_${TARGET_NAME}_base PUBLIC ${CMAKE_CURRENT_BINARY_DIR} )
 
 target_link_libraries(${APP_LIB} PUBLIC mock_${TARGET_NAME}_base)
