@@ -1,20 +1,23 @@
 
 function(add_mock_library TARGET_NAME APP_LIB)
 
-execute_process(COMMAND bash -c "find /opt/microchip/mplabx -name ${TARGET_NAME}.h" 
-OUTPUT_VARIABLE ${TARGET_NAME}_FILE
+string(REGEX MATCH "_[^_]+$" SUFFIX "${TARGET_NAME}")   # SUFFIX will be "_Bar"
+string(REGEX REPLACE "_[^_]+$" "" BASE "${TARGET_NAME}") # BASE will be "foo"
+
+execute_process(COMMAND bash -c "find /opt/microchip/mplabx -name ${BASE}.h" 
+OUTPUT_VARIABLE ${BASE}_FILE
 COMMAND_ERROR_IS_FATAL ANY)
 
-if(NOT ${TARGET_NAME}_FILE)
-    message(FATAL_ERROR "${TARGET_NAME}_FILE not found")
+if(NOT ${BASE}_FILE)
+    message(FATAL_ERROR "${BASE}_FILE not found")
 endif()
 
-set(TARGET_FILE ${${TARGET_NAME}_FILE})
+set(TARGET_FILE ${${BASE}_FILE})
 
-message("${TARGET_NAME}_FILE: ${TARGET_FILE}")
+message("${BASE}_FILE: ${TARGET_FILE}")
 
 add_custom_command(
-    OUTPUT ${TARGET_NAME}.h ${TARGET_NAME}.c 
+    OUTPUT ${BASE}.h ${BASE}.c 
     COMMAND ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../picpre.py --output ${CMAKE_CURRENT_BINARY_DIR} ${TARGET_FILE} 
     DEPENDS ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../picpre.py 
     )
@@ -26,7 +29,7 @@ add_custom_command(
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
     )
 
-add_library(mock_${TARGET_NAME}_base SHARED ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}.c ${CMAKE_CURRENT_BINARY_DIR}/version.h )
+add_library(mock_${TARGET_NAME}_base SHARED ${CMAKE_CURRENT_BINARY_DIR}/${BASE}.c ${CMAKE_CURRENT_BINARY_DIR}/version.h )
 target_include_directories(mock_${TARGET_NAME}_base PUBLIC ${CMAKE_CURRENT_BINARY_DIR} )
 
 target_link_libraries(${APP_LIB} PUBLIC mock_${TARGET_NAME}_base)
@@ -42,7 +45,7 @@ ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../basefw/timers.c
 
 target_include_directories(${APP_LIB} PUBLIC ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../basefw ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../include )
 
-target_include_directories(mock_${TARGET_NAME} PUBLIC ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../../ ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../include ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../basefw)
+target_include_directories(mock_${TARGET_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../include ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../basefw)
 
 target_link_libraries(mock_${TARGET_NAME} PUBLIC ${APP_LIB} Catch2::Catch2)
 

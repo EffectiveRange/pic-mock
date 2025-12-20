@@ -1,0 +1,9 @@
+#ifndef FW_MRCM_VERSION_H
+#define FW_MRCM_VERSION_H
+// clang-format off
+#define ER_FW_MAJOR {major_ver}
+#define ER_FW_MINOR {minor_ver}
+#define ER_FW_PATCH {patch_ver}
+
+// clang-format on
+#endif // FW_MRCM_VERSION_H

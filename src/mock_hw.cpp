@@ -100,6 +100,10 @@ void TMR0_OverflowCallbackRegister(void (*callback)(void)) {
   tmr0->OverflowCallbackRegister(callback);
 }
 
+uint16_t TMR0_CounterGet(void) { return TMR0_Read(); }
+
+void TMR0_CounterSet(uint16_t counterValue) { TMR0_Write(counterValue); }
+
 void execSleep() {
   std::unique_lock lck(main_mutex, std::adopt_lock);
   main_running = false;

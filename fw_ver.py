@@ -15,7 +15,11 @@ if args.infile is None and args.semver is False:
     print("No input file provided. Use --semver to generate a version file.")
     exit(1)
 
-git_tag = subprocess.check_output(["git", "describe", "--tags"]).decode("utf-8").strip()
+try:
+    git_tag = subprocess.check_output(["git", "describe", "--tags"], 
+                                      stderr=subprocess.DEVNULL).decode("utf-8").strip()
+except subprocess.CalledProcessError:
+    git_tag = "0.0.1"
 semver = git_tag.lstrip("v").split("-")[0].split(".")
 
 if args.semver:
