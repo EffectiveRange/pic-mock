@@ -23,6 +23,7 @@ void execSleep(void);
 #define __nop()
 
 #define SLEEP() execSleep()
+#define MAIN_THREAD_YIELD() execSleep()
 #define MAIN_THREAD_CYCLE_BEGIN() _MAIN_THREAD_CYCLE_BEGIN()
 #define MAIN_THREAD_CYCLE_END() _MAIN_THREAD_CYCLE_END()
 #define MAIN_THREAD_EXCLUSIVE_BEGIN() _MAIN_THREAD_EXCLUSIVE_BEGIN()

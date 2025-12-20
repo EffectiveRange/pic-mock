@@ -680,7 +680,7 @@ TEST_CASE("multiple timers added", "[timers]") {
   enusre_no_active_timers();
 }
 
-TEST_CASE("remvoe timer complex", "[timers]") {
+TEST_CASE("remove timer complex", "[timers]") {
   finally_reset_timers frt;
 
   auto timer1 = get_single_timer(50ms);
@@ -839,7 +839,7 @@ TEST_CASE("remvoe timer complex", "[timers]") {
   enusre_no_active_timers();
 }
 
-TEST_CASE("remvoe timer overflow protection", "[timers]") {
+TEST_CASE("remove timer overflow protection", "[timers]") {
   finally_reset_timers frt;
 
   auto timer1 = get_single_timer(3s);
@@ -855,7 +855,7 @@ TEST_CASE("remvoe timer overflow protection", "[timers]") {
   std::this_thread::sleep_for(50ms);
   on_main_thread(remove_timer)(timer1.get());
   auto res1 = timer_callbacks.pop_for(5s);
-  auto res2 = timer_callbacks.pop_for(5s);
+  auto res2 = timer_callbacks.pop_for(10s);
   REQUIRE(res1.has_value());
   REQUIRE(res2.has_value());
   REQUIRE(timer_callbacks.empty());

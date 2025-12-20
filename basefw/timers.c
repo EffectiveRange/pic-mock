@@ -1,11 +1,11 @@
 #include "timers.h"
 #include "debug.h"
+#include "main.h"
 #include "mcc_generated_files/system/system.h"
 #include "mcc_generated_files/timer/tmr0.h"
 #include "modules.h"
 #include "tasks.h"
 #include "xc.h"
-#include "main.h"
 
 #include <assert.h>
 #include <limits.h>
@@ -157,6 +157,7 @@ static struct tw_timer_t *find_timer(struct tw_timer_t *timer) {
 static bool remove_timer_unsafe2(struct tw_timer_t *timer) {
   uint16_t tmr_val = tmr_wheel_Read();
   uint16_t tmr_val_check = tmr_val;
+  uint16_t accu = 0;
   // remove head timer
   if (timer->prev == NULL) {
     _wheel.head = timer->next;
@@ -187,7 +188,12 @@ static bool remove_timer_unsafe2(struct tw_timer_t *timer) {
     timer->next->prev = timer->prev;
     // propagating time_ms to next timer
     if (timer->next != &sentinel) {
-      timer->next->time_ms += timer->time_ms;
+      accu = timer->next->time_ms + timer->time_ms;
+      if (accu < timer->next->time_ms) {
+        timer->next->time_ms = UINT16_MAX;
+      } else {
+        timer->next->time_ms = accu;
+      }
     }
   }
   return true;

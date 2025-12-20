@@ -42,7 +42,8 @@ void remove_task(struct task_descr_t *taskd) {
 }
 
 static void __idle() {
-}
+  MAIN_THREAD_YIELD();
+};
 
 void schedule_task_from_irq(struct task_descr_t *taskd) {
   ISR_SAFE_BEGIN();

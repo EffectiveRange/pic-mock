@@ -10,6 +10,10 @@
 
 #include <xc.h>
 
+
+#if !defined(MAIN_THREAD_YIELD)
+#define MAIN_THREAD_YIELD()
+#endif
 #if !defined(MAIN_THREAD_CYCLE_BEGIN)
 #define MAIN_THREAD_CYCLE_BEGIN()
 #endif
