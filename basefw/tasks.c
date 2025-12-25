@@ -23,7 +23,8 @@ void tasks_deinitialize(void) { _tasks_initialized = 0; }
 void add_task(struct task_descr_t *taskd) {
   assert(_tasks_initialized);
   taskd->next = _tasks_list.task;
-  taskd->scheduled_from_irq = false;
+  taskd->run_count_isr = 0;
+  taskd->run_count = 0;
   _tasks_list.task = taskd;
 }
 
@@ -41,13 +42,11 @@ void remove_task(struct task_descr_t *taskd) {
   }
 }
 
-static void __idle() {
-  MAIN_THREAD_YIELD();
-};
+static void __idle() { MAIN_THREAD_YIELD(); };
 
 void schedule_task_from_irq(struct task_descr_t *taskd) {
   ISR_SAFE_BEGIN();
-  taskd->scheduled_from_irq = true;
+  taskd->run_count_isr++;
   ISR_SAFE_END();
 }
 
@@ -75,9 +74,10 @@ void run_tasks() {
     // TSAN suppression added for this section
     for (struct task_descr_t *task = _tasks_list.task; task != &_sentinel;
          task = task->next) {
-      if (task->scheduled_from_irq) {
+      uint16_t irq_count = task->run_count_isr;
+      if (irq_count != task->run_count) {
         task->suspended = false;
-        task->scheduled_from_irq = false;
+        task->run_count = irq_count;
       }
     }
     MAIN_THREAD_CYCLE_END();

@@ -28,7 +28,8 @@ struct task_descr_t {
   bool suspended;
   // initialized by the runtime
   struct task_descr_t *next;
-  ATOMIC_BOOL scheduled_from_irq;
+  ATOMIC_UINT16 run_count;
+  ATOMIC_UINT16 run_count_isr;
 };
 
 void tasks_initialize(void);
