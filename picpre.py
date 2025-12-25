@@ -144,6 +144,7 @@ def main():
     with open(inputfile, "rb") as f:
         lines = f.readlines()
         regdefintions = []
+        regmacrodefs = []
         with open(outdir / inputfile.name, "w") as outheader:
             for line in lines:
                 decoded = line.decode()
@@ -168,9 +169,17 @@ def main():
 
                 elif regstructdef_match:
                     matchd = regstructdef_match.groupdict()
+                    basename = matchd["regname"].removesuffix("bits")
                     outheader.write(
                         f"extern volatile {matchd['structname']} {matchd['regname']};\n"
                     )
+                    if basename in regdef_exception_list:
+                        regmacrodefs.append(f"#ifdef {basename}\n")
+                        regmacrodefs.append(f"#undef {basename}\n")
+                        regmacrodefs.append(f"#endif // {basename}\n")
+                        regmacrodefs.append(
+                            f"#define {basename} {matchd['regname']}.__value\n"
+                        )
                     regdefintions.append(
                         f"volatile {matchd['structname']} {matchd['regname']}"
                     )
@@ -180,6 +189,9 @@ def main():
                     )
                 else:
                     outheader.write(line.decode())
+
+            for macrodef in regmacrodefs:
+                outheader.write(macrodef)
 
         with open(outdir / f"{inputfile.stem}.c", "w") as outsrc:
             outsrc.write(f"#define _XC_H_\n\n")
