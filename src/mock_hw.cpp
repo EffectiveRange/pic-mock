@@ -131,7 +131,4 @@ void advance_main_thread() {
   main_cv.notify_one();
 }
 
-void hw_interrupt() {
-  std::lock_guard lck(main_mutex);
-  advance_main_thread();
-}
+void hw_interrupt() { advance_main_thread(); }

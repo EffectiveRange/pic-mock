@@ -74,7 +74,9 @@ void run_tasks() {
     // TSAN suppression added for this section
     for (struct task_descr_t *task = _tasks_list.task; task != &_sentinel;
          task = task->next) {
+      ISR_SAFE_BEGIN();
       uint16_t irq_count = task->run_count_isr;
+      ISR_SAFE_END();
       if (irq_count != task->run_count) {
         task->suspended = false;
         task->run_count = irq_count;
