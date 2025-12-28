@@ -36,7 +36,7 @@ static inline void log_debug(const char *const msg, ...) {
 }
 #else
 
-__reentrant static inline void log_debug(const char *const msg, ...) {
+static inline void log_debug(const char *const msg, ...) {
   // No-op
 }
 

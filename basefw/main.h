@@ -10,6 +10,9 @@
 
 #include <xc.h>
 
+#if !defined(PIC_ASM)
+#define PIC_ASM(x) asm(x)
+#endif
 
 #if !defined(MAIN_THREAD_YIELD)
 #define MAIN_THREAD_YIELD()

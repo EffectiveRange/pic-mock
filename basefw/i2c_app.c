@@ -9,8 +9,9 @@
 
 #include <mcc_generated_files/system/system.h>
 
-#include <mcc_generated_files/i2c_client/i2c_client_interface.h>
 #include <mcc_generated_files/i2c_client/i2c1.h>
+#include <mcc_generated_files/i2c_client/i2c_client_interface.h>
+
 
 void I2C1_Close(void);
 void I2C1_BusReset(void);
@@ -221,7 +222,7 @@ void i2c_app_main(struct task_descr_t *task) {
   notify_write_listeners(writes_happened);
 }
 
-asm("GLOBAL _i2c_app_main");
+PIC_ASM("GLOBAL _i2c_app_main");
 
 void i2c_app_deinitialize(void) { remove_task(&i2c_app_task); }
 

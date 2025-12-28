@@ -99,7 +99,7 @@ void log_timers() {
 #endif
 }
 
-__reentrant static void add_timer_unsafe(struct tw_timer_t *timer) {
+static void add_timer_unsafe(struct tw_timer_t *timer) {
   log_timers();
   uint16_t tmr_left = 0;
   uint16_t tmr_delta = 0;
@@ -208,25 +208,30 @@ static bool remove_timer_unsafe(struct tw_timer_t *timer) {
 
 void remove_timer(struct tw_timer_t *timer) {
   tmr_wheel_Stop();
+  tmr_wheel_TMRInterruptDisable();
   remove_timer_unsafe(timer);
   if (_wheel.head != &sentinel && !_wheel.head->expired) {
+    tmr_wheel_TMRInterruptEnable();
     tmr_wheel_Start();
   }
 }
 
 void add_timer(struct tw_timer_t *timer) {
   tmr_wheel_Stop();
+  tmr_wheel_TMRInterruptDisable();
   ISR_SAFE_BEGIN();
   if (find_timer(timer) != &sentinel) {
     remove_timer_unsafe2(timer);
   }
   add_timer_unsafe(timer);
   ISR_SAFE_END();
+  tmr_wheel_TMRInterruptEnable();
   tmr_wheel_Start();
 }
 
 void TimerWheelMain(struct task_descr_t *taskd) {
   tmr_wheel_Stop();
+  tmr_wheel_TMRInterruptDisable();
   struct tw_timer_t *curr = NULL;
   struct tw_timer_t *old_head = _wheel.head;
   struct tw_timer_t *new_head = _wheel.head;
@@ -254,13 +259,14 @@ void TimerWheelMain(struct task_descr_t *taskd) {
     if (_wheel.head != &sentinel) {
       // already in TMR format
       tmr_wheel_Write(UINT16_MAX - _wheel.head->time_ms);
+      tmr_wheel_TMRInterruptEnable();
       tmr_wheel_Start();
     }
     taskd->suspended = true;
   }
 }
 
-asm("GLOBAL _TimerWheelMain");
+PIC_ASM("GLOBAL _TimerWheelMain");
 
 static struct task_descr_t timer_task = {
     .task_fn = TimerWheelMain,
@@ -289,11 +295,13 @@ static void on_timer_expired() {
 
 void timers_deinitialize() {
   tmr_wheel_Stop();
+  tmr_wheel_TMRInterruptDisable();
   remove_task(&timer_task);
 }
 
 void timers_reset() {
   tmr_wheel_Stop();
+  tmr_wheel_TMRInterruptDisable();
   _wheel.head = &sentinel;
   sentinel.prev = NULL;
   sentinel.next = NULL;
