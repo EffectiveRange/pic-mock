@@ -101,9 +101,7 @@ void log_timers() {
 static void add_timer_unsafe(struct tw_timer_t *timer) {
   log_timers();
   uint16_t tmr_left = 0;
-  uint16_t tmr_delta = 0;
   struct tw_timer_t *pos = NULL;
-  struct tw_timer_t *prev_head = NULL;
   struct tw_timer_t *head = find_first_non_expired();
   timer->time_ms_orig =
       timer->time_ms < TIMER_MAX_MS ? timer->time_ms : TIMER_MAX_MS;
@@ -155,7 +153,6 @@ static struct tw_timer_t *find_timer(struct tw_timer_t *timer) {
 
 static bool remove_timer_unsafe2(struct tw_timer_t *timer) {
   uint16_t tmr_val = tmr_wheel_Read();
-  uint16_t tmr_val_check = tmr_val;
   uint16_t accu = 0;
   // remove head timer
   if (timer->prev == NULL) {
@@ -232,7 +229,6 @@ void TimerWheelMain(struct task_descr_t *taskd) {
   struct tw_timer_t *old_head = _wheel.head;
   struct tw_timer_t *new_head = _wheel.head;
   struct tw_timer_t *res = NULL;
-  int cb_count = 0;
   if (_wheel.head != &sentinel && _wheel.head->expired) {
     curr = _wheel.head;
     _wheel.head = _wheel.head->next;
