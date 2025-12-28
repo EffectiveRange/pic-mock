@@ -7,7 +7,6 @@
 #include "tasks.h"
 #include "xc.h"
 
-#include <assert.h>
 #include <limits.h>
 #include <stdint.h>
 
@@ -169,13 +168,10 @@ static bool remove_timer_unsafe2(struct tw_timer_t *timer) {
       if (timer->next->time_ms == 0) {
         timer->next->time_ms = timer->time_ms;
       } else {
-        // We already cap max timer value in add_timer()
-        // therefore it's logically impossible
-        // that the subsequent timer is less than the remaining time to fire
-        assert(tmr_val >= timer->time_ms);
         // need to rearm timer (subtract from current tmr value)
         // already in tmr format
-        tmr_val -= timer->next->time_ms;
+        tmr_val =
+            tmr_val < timer->next->time_ms ? 0 : tmr_val - timer->next->time_ms;
         tmr_wheel_Write(tmr_val);
       }
     } else {
@@ -236,7 +232,6 @@ void TimerWheelMain(struct task_descr_t *taskd) {
   struct tw_timer_t *old_head = _wheel.head;
   struct tw_timer_t *new_head = _wheel.head;
   struct tw_timer_t *res = NULL;
-  bool expired = false;
   int cb_count = 0;
   if (_wheel.head != &sentinel && _wheel.head->expired) {
     curr = _wheel.head;
@@ -250,7 +245,6 @@ void TimerWheelMain(struct task_descr_t *taskd) {
     curr->time_ms = curr->time_ms_orig;
     log_debug("invoking callback %p", curr);
     res = curr->callback(curr);
-    expired = true;
   }
   if (res != NULL) {
     add_timer_unsafe(res);

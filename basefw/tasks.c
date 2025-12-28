@@ -5,7 +5,6 @@
 #include "mcc_generated_files/system/system.h"
 #include "modules.h"
 #include "xc.h"
-#include <assert.h>
 #include <stdlib.h>
 
 static ATOMIC_UINT16 _tasks_initialized = 0;
@@ -21,7 +20,6 @@ void tasks_initialize() { _tasks_initialized = 1; }
 void tasks_deinitialize(void) { _tasks_initialized = 0; }
 
 void add_task(struct task_descr_t *taskd) {
-  assert(_tasks_initialized);
   taskd->next = _tasks_list.task;
   taskd->run_count_isr = 0;
   taskd->run_count = 0;
@@ -51,7 +49,6 @@ void schedule_task_from_irq(struct task_descr_t *taskd) {
 }
 
 void run_tasks() {
-  assert(_tasks_initialized);
 
   while (true) {
     MAIN_THREAD_CYCLE_BEGIN();
