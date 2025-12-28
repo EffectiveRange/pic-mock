@@ -99,7 +99,7 @@ void log_timers() {
 #endif
 }
 
-static void add_timer_unsafe(struct tw_timer_t *timer) {
+__reentrant static void add_timer_unsafe(struct tw_timer_t *timer) {
   log_timers();
   uint16_t tmr_left = 0;
   uint16_t tmr_delta = 0;
@@ -259,6 +259,8 @@ void TimerWheelMain(struct task_descr_t *taskd) {
     taskd->suspended = true;
   }
 }
+
+asm("GLOBAL _TimerWheelMain");
 
 static struct task_descr_t timer_task = {
     .task_fn = TimerWheelMain,

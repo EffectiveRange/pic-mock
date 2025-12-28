@@ -199,7 +199,7 @@ static void notify_write_listeners(bool writes_happened) {
   }
 }
 
-static void i2c_app_main(struct task_descr_t *task) {
+void i2c_app_main(struct task_descr_t *task) {
   bool writes_happened = false;
   bool error_happened = false;
   INTERRUPT_GlobalInterruptLowDisable();
@@ -220,6 +220,8 @@ static void i2c_app_main(struct task_descr_t *task) {
   i2c_app_task.suspended = true;
   notify_write_listeners(writes_happened);
 }
+
+asm("GLOBAL _i2c_app_main");
 
 void i2c_app_deinitialize(void) { remove_task(&i2c_app_task); }
 
