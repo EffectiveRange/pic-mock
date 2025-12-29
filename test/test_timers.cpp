@@ -274,16 +274,18 @@ TEST_CASE("rearm timer from callback while there are multiple expired ones",
   }
   const auto start = testclock::now();
   auto res1 = timer_callbacks.pop_for(2s);
-  auto res2 = timer_callbacks.pop();
-  auto res3 = timer_callbacks.pop();
+  auto res2 = timer_callbacks.pop_for(2s);
+  auto res3 = timer_callbacks.pop_for(2s);
   auto res4 = timer_callbacks.pop_for(2s);
   REQUIRE(res1.has_value());
+  REQUIRE(res2.has_value());
+  REQUIRE(res3.has_value());
   REQUIRE(res4.has_value());
   REQUIRE(timer_callbacks.empty());
 
   REQUIRE(res1->first == timer.get());
-  REQUIRE(res2.first == timer2.get());
-  REQUIRE(res3.first == timer3.get());
+  REQUIRE(res2->first == timer2.get());
+  REQUIRE(res3->first == timer3.get());
   REQUIRE(res4->first == timer.get());
   enusre_no_active_timers();
 }
@@ -307,16 +309,18 @@ TEST_CASE(
   on_main_thread(add_timer)(timer3.get());
   const auto start = testclock::now();
   auto res1 = timer_callbacks.pop_for(2s);
-  auto res2 = timer_callbacks.pop();
-  auto res3 = timer_callbacks.pop();
+  auto res2 = timer_callbacks.pop_for(2s);
+  auto res3 = timer_callbacks.pop_for(2s);
   auto res4 = timer_callbacks.pop_for(2s);
   REQUIRE(res1.has_value());
+  REQUIRE(res2.has_value());
+  REQUIRE(res3.has_value());
   REQUIRE(res4.has_value());
   REQUIRE(timer_callbacks.empty());
 
   REQUIRE(res1->first == timer.get());
-  REQUIRE(res2.first == timer2.get());
-  REQUIRE(res3.first == timer3.get());
+  REQUIRE(res2->first == timer2.get());
+  REQUIRE(res3->first == timer3.get());
   REQUIRE(res4->first == timer.get());
   enusre_no_active_timers();
 }
