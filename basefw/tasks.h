@@ -20,9 +20,11 @@ extern "C" {
 
 struct task_descr_t;
 
-typedef void (*__far task_run_fun)(struct task_descr_t *);
-
 typedef struct task_descr_t __far *task_descr_ptr_t;
+
+
+typedef void (*__far task_run_fun)(task_descr_ptr_t);
+
 
 struct task_descr_t {
   // initialized by the client

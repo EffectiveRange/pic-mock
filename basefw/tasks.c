@@ -68,7 +68,7 @@ void run_tasks() {
     }
     // at the end of each cycle propagate from the IRQ thread suspensions
     // TSAN suppression added for this section
-    for (task_descr_ptr_t task = _tasks_list.task; task != &_sentinel;
+        for (task_descr_ptr_t task = _tasks_list.task; task != &_sentinel;
          task = task->next) {
       ISR_SAFE_BEGIN();
       uint16_t irq_count = task->run_count_isr;

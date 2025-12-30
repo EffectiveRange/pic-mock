@@ -50,7 +50,7 @@ static inline void link_timer_before(tw_timer_ptr_t timer,
   if (next->prev != NULL) {
     next->prev->next = timer;
   } else {
-    _wheel.head = timer;
+     _wheel.head = timer;
   }
   next->prev = timer;
 }
@@ -256,7 +256,7 @@ void TimerWheelMain(task_descr_ptr_t taskd) {
     log_debug("invoking callback %p", curr);
     res = curr->callback(curr);
   }
-  if (res != NULL) {
+  if (res != NULL && res != &sentinel) {
     add_timer_unsafe(res);
   }
   if (!_wheel.head->expired || _wheel.head == &sentinel) {

@@ -13,7 +13,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif
+#endif  
 
 extern volatile uint8_t __far *i2c_reg_map;
 extern volatile uint8_t __far *i2c_shadow_map;

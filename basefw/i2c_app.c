@@ -213,7 +213,7 @@ void i2c_app_main(task_descr_ptr_t task) {
     writes_happened = true;
   }
   _i2c_state.write_cnt_main = isr_wr_cnt;
-  _i2c_state.txn_error_cnt_main = txn_error_cnt;
+  _i2c_state.txn_error_cnt_main = (uint8_t)txn_error_cnt;
   MAIN_THREAD_EXCLUSIVE_END();
   INTERRUPT_GlobalInterruptHighEnable();
   INTERRUPT_GlobalInterruptLowEnable();
@@ -261,7 +261,7 @@ void i2c_client_write_register_bit(uint8_t address, uint8_t pos, uint8_t val) {
   i2c_app_task.suspended = false;
 }
 
-static struct module_t _module = {
+static struct module_t _i2c_module = {
     .init = i2c_app_initialize,
     .deinit = i2c_app_deinitialize,
     .register_events = NULL,
@@ -273,5 +273,5 @@ void register_i2c_app_module(uint8_t client_register_cnt,
                              i2c_init_callback_t initcb) {
   _i2c_state.client_register_cnt = client_register_cnt;
   _i2c_state.initcb = initcb;
-  add_module(&_module);
+  add_module(&_i2c_module);
 }
