@@ -36,9 +36,7 @@ static inline void log_debug(const char *const msg, ...) {
 }
 #else
 
-static inline void log_debug(const char *const msg, ...) {
-  // No-op
-}
+#define log_debug(...)
 
 #endif
 

@@ -12,7 +12,6 @@
 #include <mcc_generated_files/i2c_client/i2c1.h>
 #include <mcc_generated_files/i2c_client/i2c_client_interface.h>
 
-
 void I2C1_Close(void);
 void I2C1_BusReset(void);
 
@@ -25,7 +24,7 @@ static struct i2c_state {
   uint16_t write_cnt_main;
   uint8_t txn_error_cnt_main;
   uint8_t client_register_cnt;
-  void (*initcb)(void);
+  i2c_init_callback_t initcb;
   ///////////////////////////
   volatile uint8_t client_location;
   volatile uint8_t txn_error_cnt_isr;
@@ -34,7 +33,7 @@ static struct i2c_state {
   volatile uint16_t write_cnt_isr;
 } _i2c_state = {};
 
-static void i2c_app_main(struct task_descr_t *task);
+static void i2c_app_main(task_descr_ptr_t task);
 
 static struct task_descr_t i2c_app_task = {
     .task_fn = i2c_app_main,
@@ -191,7 +190,7 @@ static void notify_write_listeners(bool writes_happened) {
     for (int i = 0; i < _i2c_state.client_register_cnt; i++, ++curr_descr) {
       if (curr_descr->invoke_task == 1) {
         curr_descr->invoke_task = 0;
-        for (struct i2c_write_listener_t *curr_task = curr_descr->task;
+        for (i2c_write_listener_ptr_t curr_task = curr_descr->task;
              curr_task != NULL; curr_task = curr_task->next) {
           curr_task->task->suspended = false;
         }
@@ -200,7 +199,7 @@ static void notify_write_listeners(bool writes_happened) {
   }
 }
 
-void i2c_app_main(struct task_descr_t *task) {
+void i2c_app_main(task_descr_ptr_t task) {
   bool writes_happened = false;
   bool error_happened = false;
   INTERRUPT_GlobalInterruptLowDisable();
@@ -227,7 +226,7 @@ PIC_ASM("GLOBAL _i2c_app_main");
 void i2c_app_deinitialize(void) { remove_task(&i2c_app_task); }
 
 void i2c_register_write_listener(uint8_t address,
-                                 struct i2c_write_listener_t *task) {
+                                 i2c_write_listener_ptr_t task) {
   if (address >= _i2c_state.client_register_cnt) {
     return;
   }
@@ -237,7 +236,7 @@ void i2c_register_write_listener(uint8_t address,
 }
 
 void i2c_deregister_write_listener(uint8_t address,
-                                   struct i2c_write_listener_t *task) {
+                                   i2c_write_listener_ptr_t task) {
 
   // TODO: implement
 }
@@ -269,8 +268,9 @@ static struct module_t _module = {
     .deregister_events = NULL,
     .next = NULL,
 };
+
 void register_i2c_app_module(uint8_t client_register_cnt,
-                             void (*initcb)(void)) {
+                             i2c_init_callback_t initcb) {
   _i2c_state.client_register_cnt = client_register_cnt;
   _i2c_state.initcb = initcb;
   add_module(&_module);

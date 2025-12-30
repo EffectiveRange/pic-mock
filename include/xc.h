@@ -22,6 +22,8 @@ void execSleep(void);
 
 #define __nop()
 
+#define __far
+
 #define SLEEP() execSleep()
 #define MAIN_THREAD_YIELD() execSleep()
 #define MAIN_THREAD_CYCLE_BEGIN() _MAIN_THREAD_CYCLE_BEGIN()

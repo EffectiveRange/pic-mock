@@ -10,6 +10,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <xc.h>
 
 #include "common.h"
 
@@ -19,15 +20,17 @@ extern "C" {
 
 struct task_descr_t;
 
-typedef void (*task_run_fun)(struct task_descr_t *);
+typedef void (*__far task_run_fun)(struct task_descr_t *);
+
+typedef struct task_descr_t __far *task_descr_ptr_t;
 
 struct task_descr_t {
   // initialized by the client
   task_run_fun task_fn;
-  void *task_state;
+  void __far *task_state;
   bool suspended;
   // initialized by the runtime
-  struct task_descr_t *next;
+  task_descr_ptr_t next;
   ATOMIC_UINT16 run_count;
   ATOMIC_UINT16 run_count_isr;
 };
@@ -46,12 +49,11 @@ void register_tasks_module(void);
 // This must be called once, during module initialization
 // the task state can be suspended or resumed through the
 // task descriptor
-void add_task(struct task_descr_t *);
-void remove_task(struct task_descr_t *);
+void add_task(task_descr_ptr_t);
+void remove_task(task_descr_ptr_t);
 
 // Safe to call from IRQ thread
-void schedule_task_from_irq(struct task_descr_t *taskd);
-
+void schedule_task_from_irq(task_descr_ptr_t taskd);
 // entry point from main thread
 void run_tasks(void);
 

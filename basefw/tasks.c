@@ -12,27 +12,26 @@ static ATOMIC_UINT16 _tasks_initialized = 0;
 static struct task_descr_t _sentinel = {NULL, NULL, 1, NULL};
 
 static struct TaskList_t {
-  struct task_descr_t *task;
+  task_descr_ptr_t task;
 } _tasks_list = {&_sentinel};
 
 void tasks_initialize() { _tasks_initialized = 1; }
 
 void tasks_deinitialize(void) { _tasks_initialized = 0; }
 
-void add_task(struct task_descr_t *taskd) {
+void add_task(task_descr_ptr_t taskd) {
   taskd->next = _tasks_list.task;
   taskd->run_count_isr = 0;
   taskd->run_count = 0;
   _tasks_list.task = taskd;
 }
 
-void remove_task(struct task_descr_t *taskd) {
+void remove_task(task_descr_ptr_t taskd) {
   if (_tasks_list.task == taskd) {
     _tasks_list.task = taskd->next;
     return;
   }
-  for (struct task_descr_t *t = _tasks_list.task; t != &_sentinel;
-       t = t->next) {
+  for (task_descr_ptr_t t = _tasks_list.task; t != &_sentinel; t = t->next) {
     if (t->next == taskd) {
       t->next = t->next->next;
       break;
@@ -42,7 +41,7 @@ void remove_task(struct task_descr_t *taskd) {
 
 static void __idle() { MAIN_THREAD_YIELD(); };
 
-void schedule_task_from_irq(struct task_descr_t *taskd) {
+void schedule_task_from_irq(task_descr_ptr_t taskd) {
   ISR_SAFE_BEGIN();
   taskd->run_count_isr++;
   ISR_SAFE_END();
@@ -57,7 +56,7 @@ void run_tasks() {
       break;
     }
     bool task_run = false;
-    for (struct task_descr_t *task = _tasks_list.task; task != &_sentinel;
+    for (task_descr_ptr_t task = _tasks_list.task; task != &_sentinel;
          task = task->next) {
       if (!task->suspended) {
         task_run = true;
@@ -69,7 +68,7 @@ void run_tasks() {
     }
     // at the end of each cycle propagate from the IRQ thread suspensions
     // TSAN suppression added for this section
-    for (struct task_descr_t *task = _tasks_list.task; task != &_sentinel;
+    for (task_descr_ptr_t task = _tasks_list.task; task != &_sentinel;
          task = task->next) {
       ISR_SAFE_BEGIN();
       uint16_t irq_count = task->run_count_isr;

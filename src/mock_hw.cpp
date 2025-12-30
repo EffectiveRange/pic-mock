@@ -1,5 +1,6 @@
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <cstdint>
 #include <ctime>
 #include <future>
@@ -21,7 +22,19 @@ using callback_t = void (*)(void);
 
 class TMR0_mock {
 public:
-  TMR0_mock(std::chrono::microseconds period) : m_period(period) {}
+  TMR0_mock(std::chrono::microseconds period) : m_period(period) {
+    m_fut = std::async(std::launch::async, [this]() {
+      while (!m_stopped) {
+        if (m_running) {
+          std::this_thread::sleep_for(m_period);
+          tick();
+        } else {
+          std::unique_lock lck(mtx);
+          cv.wait(lck, [this] { return m_running || m_stopped; });
+        }
+      }
+    });
+  }
   void Write(uint16_t val) {
     m_val = val;
     // Do nothing
@@ -29,19 +42,12 @@ public:
   uint16_t Read(void) { return m_val.load(); }
   void Stop(void) {
     m_running = false;
-    if (m_fut.valid()) {
-      m_fut.wait();
-    }
+    cv.notify_all();
   }
   void Start(void) {
     // Do nothing
     m_running = true;
-    m_fut = std::async(std::launch::async, [this]() {
-      while (m_running) {
-        std::this_thread::sleep_for(m_period);
-        tick();
-      }
-    });
+    cv.notify_all();
   }
   void OverflowCallbackRegister(callback_t cb) { m_cb = cb; }
 
@@ -54,7 +60,8 @@ public:
   }
 
   ~TMR0_mock() {
-    m_running = false;
+    m_stopped = true;
+    cv.notify_all();
     if (m_fut.valid()) {
       m_fut.wait();
     }
@@ -66,7 +73,10 @@ public:
 private:
   std::atomic<uint16_t> m_val = 0;
   callback_t m_cb = nullptr;
+  std::mutex mtx;
+  std::condition_variable cv;
   std::atomic<bool> m_running = false;
+  std::atomic<bool> m_stopped = false;
   std::chrono::microseconds m_period;
   std::future<void> m_fut;
 };

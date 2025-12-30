@@ -15,16 +15,19 @@
 extern "C" {
 #endif
 
-extern volatile uint8_t *i2c_reg_map;
-extern volatile uint8_t *i2c_shadow_map;
+extern volatile uint8_t __far *i2c_reg_map;
+extern volatile uint8_t __far *i2c_shadow_map;
+
+struct i2c_write_listener_t;
+typedef struct i2c_write_listener_t __far *i2c_write_listener_ptr_t;
 
 struct i2c_write_listener_t {
-  struct task_descr_t *task;
-  struct i2c_write_listener_t *next;
+  task_descr_ptr_t task;
+  i2c_write_listener_ptr_t next;
 };
 
 struct i2c_reg_descr {
-  struct i2c_write_listener_t *task;
+  i2c_write_listener_ptr_t task;
   uint8_t writable : 1;
   uint8_t clear_on_read : 1;
   uint8_t written_by_isr : 1;

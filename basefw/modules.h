@@ -4,21 +4,25 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include <xc.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 struct module_t {
   // required
-  void (*init)(void);
-  void (*deinit)(void);
+  void (*__far init)(void);
+  void (*__far deinit)(void);
   // optional
-  void (*register_events)(void);
-  void (*deregister_events)(void);
+  void (*__far register_events)(void);
+  void (*__far deregister_events)(void);
   // initialized by framework
   struct module_t *next;
 };
 
-void add_module(struct module_t *module);
+typedef struct module_t __far *module_ptr_t;
+
+void add_module(module_ptr_t module);
 void initialize_modules(void);
 void deinitialize_modules(void);
 
