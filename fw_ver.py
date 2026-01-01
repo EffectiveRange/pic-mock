@@ -3,6 +3,7 @@
 import subprocess
 import pathlib
 import argparse
+import tempfile
 
 argparser = argparse.ArgumentParser(description="Generate version file.")
 argparser.add_argument("infile", type=pathlib.Path, help="Input file", nargs="?")
@@ -16,8 +17,13 @@ if args.infile is None and args.semver is False:
     exit(1)
 
 try:
-    git_tag = subprocess.check_output(["git", "describe", "--tags"], 
-                                      stderr=subprocess.DEVNULL).decode("utf-8").strip()
+    git_tag = (
+        subprocess.check_output(
+            ["git", "describe", "--tags"], stderr=subprocess.DEVNULL
+        )
+        .decode("utf-8")
+        .strip()
+    )
 except subprocess.CalledProcessError:
     git_tag = "0.0.1"
 semver = git_tag.lstrip("v").split("-")[0].split(".")
@@ -36,5 +42,6 @@ else:
         patch_ver=semver[2],
     )
 
-    with open(infile.parent / infile.stem, "w") as f:
-        f.write(result)
+    if not infile.exists() or infile.read_text() != result:
+        with open(infile.parent / infile.stem, "w") as f:
+            f.write(result)

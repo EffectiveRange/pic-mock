@@ -1,331 +1,88 @@
-#include "timers.h"
-#include "debug.h"
-#include "main.h"
-#include "mcc_generated_files/system/system.h"
-#include "mcc_generated_files/timer/tmr0.h"
-#include "modules.h"
+#include <stdbool.h>
+#include <xc.h>
+
+#include "application.h"
 #include "tasks.h"
-#include "xc.h"
+#include "timers.h"
 
-#include <limits.h>
-#include <stdint.h>
+#include "mcc_generated_files/timer/tmr0.h"
 
-#define MIN_TMR_DELTA                                                          \
-  ((TMR_PRESCALE + SYS_CLOCK_FREQ_KHZ - 1) / SYS_CLOCK_FREQ_KHZ)
+struct timer_state_t {
+  timer_cb cb;
+  uint16_t time_ms;
+  /// irq safe variables
+  volatile uint16_t time_ms_left;
+  volatile bool armed;
+  volatile bool expired;
+};
 
-static struct tw_timer_t sentinel = {0, NULL, NULL, false, NULL, NULL, 0};
+struct timer_state_t timers[TIMERS_COUNT] = {};
 
-static struct timer_wheel_t {
-  tw_timer_ptr_t head;
-} _wheel = {&sentinel};
+volatile uint32_t timer_jiffies = 0;
 
-static inline tw_timer_ptr_t find_last_non_zero_prev(tw_timer_ptr_t head) {
-  tw_timer_ptr_t curr = head;
-  while (curr->next != &sentinel) {
-    if (curr->next->time_ms != 0) {
-      break;
-    }
-    curr = curr->next;
-  }
-  return curr;
+uint32_t __reentrant timers_jiffies(void) {
+  uint32_t a = 0;
+  uint32_t b = 0;
+  do {
+    a = timer_jiffies;
+    b = timer_jiffies;
+  } while (a != b);
+  return a;
 }
 
-static inline tw_timer_ptr_t find_first_non_expired() {
-  tw_timer_ptr_t curr = _wheel.head;
-  for (; curr != &sentinel && curr->expired; curr = curr->next) {
-  }
-  return curr;
+void timers_arm(uint8_t idx, timer_cb cb, uint16_t time) {
+  timers[idx].armed = false;
+  timers[idx].cb = cb;
+  timers[idx].time_ms = time;
+  timers[idx].time_ms_left = time;
+  timers[idx].expired = false;
+  timers[idx].armed = true;
 }
 
-// time ms is already clamped to TIMER_MAX_MS in add_timer()
-static inline uint16_t time_to_tmr(uint16_t time_ms) {
-  uint32_t val = ((uint32_t)time_ms * SYS_CLOCK_FREQ_KHZ) / TMR_PRESCALE;
-  return (uint16_t)val;
-}
+void __reentrant timers_dearm(uint8_t idx) { timers[idx].armed = false; }
 
-static inline void link_timer_before(tw_timer_ptr_t timer,
-                                     tw_timer_ptr_t next) {
-  timer->next = next;
-  timer->prev = next->prev;
-  if (next->prev != NULL) {
-    next->prev->next = timer;
-  } else {
-     _wheel.head = timer;
-  }
-  next->prev = timer;
-}
-
-static inline void link_timer_after(tw_timer_ptr_t prev, tw_timer_ptr_t timer) {
-  prev->next->prev = timer;
-  timer->next = prev->next;
-  prev->next = timer;
-  timer->prev = prev;
-}
-
-static void add_future_timer_to_wheel(uint16_t tmr_left, tw_timer_ptr_t head,
-                                      tw_timer_ptr_t timer) {
-  // later time
-  // find position,
-  // update subsequent time_us by subtracting the diff between
-  uint16_t accu = tmr_left;
-  uint16_t delta = 0;
-  tw_timer_ptr_t curr = head;
-
-  while (curr->next != &sentinel) {
-    if (timer->time_ms <= accu + curr->next->time_ms) {
-      break;
-    }
-    accu += curr->next->time_ms;
-    curr = curr->next;
-  }
-
-  delta = accu <= timer->time_ms ? timer->time_ms - accu : 0;
-  link_timer_after(curr, timer);
-  timer->time_ms = delta;
-  if (timer->next != &sentinel) {
-    timer->next->time_ms =
-        delta <= timer->next->time_ms ? timer->next->time_ms - delta : 0;
-  }
-}
-
-#if defined(MRHAT_FW_DEBUG_LOG_ENABLED)
-void log_timers() {
-  log_debug("timers:");
-  for (tw_timer_ptr_t curr = _wheel.head; curr != &sentinel;
-       curr = curr->next) {
-    log_debug("  timer %p, time_ms %d, expired %d", curr, curr->time_ms,
-              curr->expired);
-  }
-}
-#else
-#define log_timers()
-#endif
-
-static void add_timer_unsafe(tw_timer_ptr_t timer) {
-  log_timers();
-  uint16_t tmr_left = 0;
-  tw_timer_ptr_t pos = NULL;
-  tw_timer_ptr_t head = find_first_non_expired();
-  timer->time_ms_orig =
-      timer->time_ms < TIMER_MAX_MS ? timer->time_ms : TIMER_MAX_MS;
-  timer->time_ms = time_to_tmr(timer->time_ms);
-  timer->expired = false;
-  log_debug("Adding timer %p with tmr value %d and time ms %d", timer,
-            timer->time_ms, timer->time_ms_orig);
-
-  if (head == &sentinel) {
-    link_timer_before(timer, head);
-    tmr_wheel_Write(TMR0_MAX_COUNT - timer->time_ms);
-  } else {
-    // determine how much time until next timer firing
-    // if there are still expired timers, it means the timer
-    // is not armed, so tmr_left is 0
-    tmr_left = head == _wheel.head ? TMR0_MAX_COUNT - tmr_wheel_Read() : 0;
-    // cap tmr_left to head timer time_ms in case of
-    // missing an in-flight interrupt
-    if (tmr_left > head->time_ms) {
-      tmr_left = head->time_ms;
-    }
-    if (head == _wheel.head && tmr_left - MIN_TMR_DELTA <= timer->time_ms &&
-        timer->time_ms <= tmr_left + MIN_TMR_DELTA) {
-      // practically same time, resolution is +- MIN_TMR_DELTA
-      pos = find_last_non_zero_prev(head);
-      timer->time_ms = 0;
-      link_timer_after(pos, timer);
-    } else if (head == _wheel.head &&
-               timer->time_ms < tmr_left - MIN_TMR_DELTA) {
-      // new arm
-      tmr_wheel_Write(TMR0_MAX_COUNT - timer->time_ms);
-      head->time_ms -= timer->time_ms;
-      link_timer_before(timer, head);
-    } else {
-      add_future_timer_to_wheel(tmr_left, head, timer);
-    }
-  }
-  log_timers();
-}
-
-tw_timer_ptr_t head_timer() { return _wheel.head; }
-tw_timer_ptr_t sentinel_timer() { return &sentinel; }
-
-static inline tw_timer_ptr_t find_timer(tw_timer_ptr_t timer) {
-  tw_timer_ptr_t curr = _wheel.head;
-  while (curr != &sentinel) {
-    if (curr == timer) {
-      break;
-    }
-    curr = curr->next;
-  }
-  return curr;
-}
-
-static bool remove_timer_unsafe2(tw_timer_ptr_t timer) {
-  uint16_t tmr_val = tmr_wheel_Read();
-  uint16_t accu = 0;
-  // remove head timer
-  if (timer->prev == NULL) {
-    _wheel.head = timer->next;
-    timer->next->prev = NULL;
-    // if not solo timer
-    if (timer->next != &sentinel) {
-      // when next timer is around the same time
-      // then simply propagate the time_ms to next timer
-      if (timer->next->time_ms == 0) {
-        timer->next->time_ms = timer->time_ms;
-      } else {
-        // need to cap tmr val in case of in-flight interrupt
-        // as it might have rolled over to 0 as tmr value
-        // must be >= TMR0_MAX_COUNT - timer->time_ms all times
-        if (tmr_val < TMR0_MAX_COUNT - timer->time_ms) {
-          tmr_val = TMR0_MAX_COUNT;
-        }
-        // need to rearm timer (subtract from current tmr value)
-        // already in tmr format
-        tmr_val =
-            tmr_val < timer->next->time_ms ? 0 : tmr_val - timer->next->time_ms;
-        tmr_wheel_Write(tmr_val);
-      }
-    } else {
-      // only the sentinel was left, no need to restart timer
-      return false;
-    }
-  } else {
-    // unlinking timer from the list
-    timer->prev->next = timer->next;
-    timer->next->prev = timer->prev;
-    // propagating time_ms to next timer
-    if (timer->next != &sentinel) {
-      accu = timer->next->time_ms + timer->time_ms;
-      if (accu < timer->next->time_ms) {
-        timer->next->time_ms = TMR0_MAX_COUNT;
-      } else {
-        timer->next->time_ms = accu;
+void timers_expired() {
+  timer_jiffies = timer_jiffies + 1;
+  bool any_expired = false;
+  for (int i = 0; i < TIMERS_COUNT; ++i) {
+    struct timer_state_t *timer = &timers[i];
+    if (timer->armed && !timer->expired) {
+      uint16_t rem = timer->time_ms_left;
+      timer->time_ms_left = rem > 0 ? rem - 1 : 0;
+      if (timer->time_ms_left == 0) {
+        timer->expired = true;
+        any_expired = true;
       }
     }
   }
-  return true;
+  if (any_expired) {
+    task_schedule_from_irq(TIMER_TASK);
+  }
+  tmr_wheel_Reload();
 }
 
-static inline bool remove_timer_unsafe(tw_timer_ptr_t timer) {
-  if (find_timer(timer) != &sentinel) {
-    return remove_timer_unsafe2(timer);
+bool timers_main() {
+  tmr_wheel_Stop();
+  tmr_wheel_TMRInterruptDisable();
+  for (int i = 0; i < TIMERS_COUNT; ++i) {
+    struct timer_state_t *timer = &timers[i];
+    if (timer->expired) {
+      timer->expired = false;
+      timer->armed = false;
+      timer->cb();
+    }
   }
+  tmr_wheel_TMRInterruptEnable();
+  tmr_wheel_Start();
   return false;
 }
 
-void remove_timer(tw_timer_ptr_t timer) {
-  tmr_wheel_Stop();
-  tmr_wheel_TMRInterruptDisable();
-  remove_timer_unsafe(timer);
-  if (_wheel.head != &sentinel && !_wheel.head->expired) {
-    tmr_wheel_TMRInterruptEnable();
-    tmr_wheel_Start();
-  }
-}
-
-void add_timer(tw_timer_ptr_t timer) {
-  tmr_wheel_Stop();
-  tmr_wheel_TMRInterruptDisable();
-  ISR_SAFE_BEGIN();
-  if (find_timer(timer) != &sentinel) {
-    remove_timer_unsafe2(timer);
-  }
-  ISR_SAFE_END();
-  add_timer_unsafe(timer);
-  tmr_wheel_TMRInterruptEnable();
+void timers_intialize() {
+  // 1 ms interrupts
+  // TMR0 must be configured for 1MHz clock
+  task_init(TIMER_TASK, timers_main, true);
+  tmr_wheel_OverflowCallbackRegister(timers_expired);
+  tmr_wheel_PeriodSet(TMR0_MAX_COUNT - 1000 + 1);
+  tmr_wheel_Reload();
   tmr_wheel_Start();
 }
-
-void TimerWheelMain(task_descr_ptr_t taskd) {
-  tmr_wheel_Stop();
-  tmr_wheel_TMRInterruptDisable();
-  tw_timer_ptr_t curr = NULL;
-  tw_timer_ptr_t old_head = _wheel.head;
-  tw_timer_ptr_t new_head = _wheel.head;
-  tw_timer_ptr_t res = NULL;
-  if (_wheel.head != &sentinel && _wheel.head->expired) {
-    curr = _wheel.head;
-    _wheel.head = _wheel.head->next;
-    _wheel.head->prev = NULL;
-    // propagate time ms to next expired timer
-    // if timers were simultaneously expired
-    if (_wheel.head->expired && _wheel.head->time_ms == 0) {
-      _wheel.head->time_ms = curr->time_ms;
-    }
-    curr->time_ms = curr->time_ms_orig;
-    log_debug("invoking callback %p", curr);
-    res = curr->callback(curr);
-  }
-  if (res != NULL && res != &sentinel) {
-    add_timer_unsafe(res);
-  }
-  if (!_wheel.head->expired || _wheel.head == &sentinel) {
-    if (_wheel.head != &sentinel) {
-      // already in TMR format
-      tmr_wheel_Write(TMR0_MAX_COUNT - _wheel.head->time_ms);
-      tmr_wheel_TMRInterruptEnable();
-      tmr_wheel_Start();
-    }
-    taskd->suspended = true;
-  }
-}
-
-PIC_ASM("GLOBAL _TimerWheelMain");
-
-static struct task_descr_t timer_task = {
-    .task_fn = TimerWheelMain,
-    .task_state = NULL,
-    .suspended = true,
-    .next = NULL,
-};
-
-// mutally  exclusive with timer wheel main/add/remove timer
-// functions as those stop the timer
-static void on_timer_expired() {
-  log_timers();
-  ISR_SAFE_BEGIN();
-  tw_timer_ptr_t curr = _wheel.head;
-  while (curr != &sentinel) {
-    curr->expired = true;
-    log_debug("expired: %p next: %p", curr, curr->next);
-    curr = curr->next;
-    if (curr->time_ms != 0) {
-      break;
-    }
-  }
-  ISR_SAFE_END();
-  schedule_task_from_irq(&timer_task);
-}
-
-void timers_deinitialize() {
-  tmr_wheel_Stop();
-  tmr_wheel_TMRInterruptDisable();
-  remove_task(&timer_task);
-}
-
-void timers_reset() {
-  tmr_wheel_Stop();
-  tmr_wheel_TMRInterruptDisable();
-  _wheel.head = &sentinel;
-  sentinel.prev = NULL;
-  sentinel.next = NULL;
-  sentinel.time_ms = 0;
-  sentinel.expired = false;
-}
-
-void timers_initialize() {
-  timers_deinitialize();
-  add_task(&timer_task);
-  timers_reset();
-  tmr_wheel_OverflowCallbackRegister(on_timer_expired);
-}
-
-static struct module_t _timer_module = {
-    .init = timers_initialize,
-    .deinit = timers_deinitialize,
-    .register_events = NULL,
-    .deregister_events = NULL,
-    .next = NULL,
-};
-
-void register_timer_module(void) { add_module(&_timer_module); }

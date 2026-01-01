@@ -38,7 +38,6 @@ add_library(mock_${TARGET_NAME} SHARED
 ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../src/mock_hw.cpp 
 ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../src/test_main.cpp
 ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../basefw/i2c_app.c
-${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../basefw/modules.c
 ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../basefw/tasks.c
 ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../basefw/timers.c
 )

@@ -3,8 +3,7 @@
 find_package(Catch2 REQUIRED)
 
 add_library(app_customization_test SHARED 
-    app.c 
-    i2c_regs.c 
+    app.cpp
     ../../mcc_generated_files/i2c_client/src/i2c1.c
     ../../mcc_generated_files/timer/src/tmr0.c
 )

@@ -6,26 +6,21 @@
 #include <future>
 
 extern void hw_interrupt();
-extern "C" void tasks_deinitialize(void);
 
 #ifndef PIC_HW_MAIN_ENTRY_POINT
-#define PIC_HW_MAIN_ENTRY_POINT hw_main
+#define PIC_HW_MAIN_ENTRY_POINT test_main
 #endif
 
-extern void PIC_HW_MAIN_ENTRY_POINT(std::promise<void>);
+extern void PIC_HW_MAIN_ENTRY_POINT();
+
+volatile bool _task_main_running = true;
+;
 
 int main(int argc, char *argv[]) {
   std::promise<void> pr;
-  auto fut = pr.get_future();
-  auto mainfut =
-      std::async(std::launch::async, PIC_HW_MAIN_ENTRY_POINT, std::move(pr));
-  fut.get();
+  auto mainfut = std::async(std::launch::async, PIC_HW_MAIN_ENTRY_POINT);
   const auto res = Catch::Session().run(argc, argv);
-  MAIN_THREAD_CYCLE_BEGIN();
-  MAIN_THREAD_EXCLUSIVE_BEGIN();
-  tasks_deinitialize();
-  MAIN_THREAD_EXCLUSIVE_END();
-  MAIN_THREAD_CYCLE_END();
+  _task_main_running = false;
   hw_interrupt();
   return res;
 }

@@ -26,7 +26,10 @@ public:
     m_fut = std::async(std::launch::async, [this]() {
       while (!m_stopped) {
         if (m_running) {
-          std::this_thread::sleep_for(m_period);
+          const auto start = std::chrono::high_resolution_clock::now();
+          while (std::chrono::high_resolution_clock::now() - start < m_period) {
+            std::this_thread::yield();
+          }
           tick();
         } else {
           std::unique_lock lck(mtx);
@@ -69,9 +72,12 @@ public:
 
   auto get_period() const { return m_period; }
   void set_period(std::chrono::microseconds period) { m_period = period; }
+  void set_reload_value(uint16_t val) { m_reload = val; }
+  void reload() { m_val = m_reload.load(); }
 
 private:
   std::atomic<uint16_t> m_val = 0;
+  std::atomic<uint16_t> m_reload = 0;
   callback_t m_cb = nullptr;
   std::mutex mtx;
   std::condition_variable cv;
@@ -83,7 +89,7 @@ private:
 
 std::unique_ptr<TMR0_mock> tmr0;
 
-static std::chrono::microseconds tmr0_period = std::chrono::microseconds(512);
+static std::chrono::microseconds tmr0_period = std::chrono::microseconds(1);
 
 } // namespace
 
@@ -114,6 +120,12 @@ uint16_t TMR0_CounterGet(void) { return TMR0_Read(); }
 
 void TMR0_CounterSet(uint16_t counterValue) { TMR0_Write(counterValue); }
 
+void TMR0_PeriodSet(uint16_t periodCount) {
+  tmr0->set_reload_value(periodCount);
+}
+
+void TMR0_Reload(void) { tmr0->reload(); }
+
 void execSleep() {
   std::unique_lock lck(main_mutex, std::adopt_lock);
   main_running = false;
@@ -128,13 +140,6 @@ void _MAIN_THREAD_EXCLUSIVE_END() { irq_mutex.unlock(); }
 }
 
 std::mutex &get_main_mutex() { return main_mutex; }
-
-void hw_main(std::promise<void> pr) {
-  init_application();
-  pr.set_value();
-  run_tasks();
-  deinitialize_modules();
-};
 
 void advance_main_thread() {
   main_running = true;
