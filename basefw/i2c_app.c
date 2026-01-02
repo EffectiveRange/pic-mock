@@ -228,7 +228,6 @@ void i2c_app_initialize() {
   for (int i = 0; i < I2C_CLIENT_LOCATION_SIZE; i++) {
     i2c_shadow_map[i] = i2c_reg_map[i];
   }
-  I2C1_Initialize();
   I2C1_Client.CallbackRegister(isr_i2c_client_application);
   task_init(I2C_TASK, i2c_app_main, false);
 }

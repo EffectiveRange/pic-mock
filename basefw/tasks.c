@@ -1,6 +1,9 @@
 #include "tasks.h"
+#include "main.h"
 
 #include <stdbool.h>
+
+
 
 struct task_descr_t {
   task_run_fun task_fn;
