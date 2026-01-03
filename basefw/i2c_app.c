@@ -180,7 +180,7 @@ static void notify_write_listeners(bool writes_happened) {
 
 // called only from main thread
 
-bool i2c_app_main() {
+void i2c_app_main() {
   bool writes_happened = false;
   uint8_t isr_wr_cnt = _i2c_state.write_cnt_isr;
   uint8_t txn_error_cnt = _i2c_state.txn_error_cnt_isr;
@@ -192,7 +192,6 @@ bool i2c_app_main() {
   _i2c_state.write_cnt_main = isr_wr_cnt;
   _i2c_state.txn_error_cnt_main = txn_error_cnt;
   notify_write_listeners(writes_happened);
-  return false;
 }
 
 // called only from main thread
