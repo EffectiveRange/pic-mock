@@ -83,7 +83,7 @@ PIC_ASM("GLOBAL _timers_dearm");
 // only called by TMR0 interrupt
 
 void timers_expired() {
-    GPIO_RA4_SetHigh();
+    //    GPIO_RA4_SetHigh();
     ++timer_jiffies;
     uint8_t any_expired = 0;
     for (uint8_t i = 0; i < TIMERS_COUNT; ++i) {
@@ -108,7 +108,7 @@ void timers_expired() {
     if (any_expired) {
         task_schedule_from_irq(TIMER_TASK);
     }
-    GPIO_RA4_SetLow();
+    //    GPIO_RA4_SetLow();
 }
 
 // main thread loop function
