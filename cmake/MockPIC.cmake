@@ -24,8 +24,8 @@ add_custom_command(
 
 add_custom_command(
     OUTPUT version.h
-    COMMAND ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../fw_ver.py ${PROJECT_SOURCE_DIR}/version.h.in
-    DEPENDS ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../fw_ver.py ${PROJECT_SOURCE_DIR}/version.h.in
+    COMMAND ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../fw_ver.py ${PROJECT_SOURCE_DIR}/src/version.h.in
+    DEPENDS ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../fw_ver.py ${PROJECT_SOURCE_DIR}/src/version.h.in
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
     )
 
