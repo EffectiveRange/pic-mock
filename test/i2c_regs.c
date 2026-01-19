@@ -22,9 +22,9 @@ static uint8_t i2c_reg_map[I2C_CLIENT_LOCATION_SIZE] = {
  0x00, // 0x0E  // UNUSED
  0x00, // 0x0F  // UNUSED
  0x00, // 0x10  // UNUSED
- FW_MRCM_MAJOR, // 0x11 // FW major version
- FW_MRCM_MINOR, // 0x12 // FW minor version
- FW_MRCM_PATCH // 0x13 // FW patch version
+ ER_FW_MAJOR, // 0x11 // FW major version
+ ER_FW_MINOR, // 0x12 // FW minor version
+ ER_FW_PATCH // 0x13 // FW patch version
 };
 
 struct i2c_reg_descr i2c_reg_defs[I2C_CLIENT_LOCATION_SIZE]= {

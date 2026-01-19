@@ -6,7 +6,7 @@
 
 #include <mcc_generated_files/system/system.h>
 
-void test_main(void) {
+void app_main() {
   // no need for system initializ here in the test context
   timers_initialize();
   i2c_app_initialize();

@@ -42,6 +42,8 @@ else:
         patch_ver=semver[2],
     )
 
-    if not infile.exists() or infile.read_text() != result:
-        with open(infile.parent / infile.stem, "w") as f:
+    result_file = infile.parent / infile.stem
+    if not result_file.exists() or result_file.read_text() != result:
+        print(f"Updating version file: {result_file} as content changed!")
+        with open(result_file, "w") as f:
             f.write(result)
