@@ -8,9 +8,9 @@
 #ifndef TIMERS_H
 #define TIMERS_H
 
-#include <xc.h>
-#include <stdint.h>
 #include "application.h"
+#include <stdint.h>
+#include <xc.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -18,6 +18,10 @@ extern "C" {
 
 #ifndef TIMERS_COUNT
 #error "TIMERS_COUNT must be defined"
+#endif
+
+#ifndef TIMERS_TICK_COUNT_FOR_UNIT
+#error "TIMERS_TICK_COUNT_FOR_UNIT must be defined"
 #endif
 
 typedef void (*timer_cb)(void);
@@ -38,10 +42,9 @@ typedef void (*timer_cb)(void);
  *
  * @param idx  Index of the timer (0..TIMERS_COUNT-1).
  * @param cb   Callback invoked from main thread context when the timer expires.
- * @param time Expiry time in milliseconds.
+ * @param time Expiry time in time units defined by TIMERS_TICK_COUNT_FOR_UNIT.
  */
 void __reentrant timers_arm(uint8_t idx, timer_cb cb, uint16_t time);
-
 
 /**
  * @ingroup timer
@@ -60,7 +63,8 @@ void __reentrant timers_dearm(uint8_t idx);
 
 /**
  * @ingroup timer
- * @brief Returns a monotonically increasing tick counter in milliseconds.
+ * @brief Returns a monotonically increasing tick counter in units defined by
+ * TIMERS_TICK_COUNT_FOR_UNIT.
  *
  * Must be called from main thread context only.
  *
@@ -73,14 +77,14 @@ uint32_t __reentrant timers_jiffies(void);
  * @ingroup timer
  * @brief Initializes the timer subsystem for the 1 ms timer tick.
  *
- * Must be called only once from main thread context during system 
+ * Must be called only once from main thread context during system
  * initialization, before any other timer API is used and global interrupts
  * are enabled.
  *
  * This function initializes all timer slots to a disarmed state, resets
  * internal bookkeeping, registers the TMR0 overflow ISR callback, and
  * configures/enables the hardware timer used as the 1 ms tick source.
- * 
+ *
  * @note No timer expiry processing occurs until global interrupts are enabled
  *       by the application.
  */

@@ -8,7 +8,7 @@
 
 void test_main(void) {
   // no need for system initializ here in the test context
-  timers_intialize();
+  timers_initialize();
   i2c_app_initialize();
   // If using interrupts in PIC18 High/Low Priority Mode you need to enable the
   // Global High and Low Interrupts If using interrupts in PIC Mid-Range

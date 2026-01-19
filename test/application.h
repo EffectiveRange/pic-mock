@@ -12,6 +12,7 @@
 extern "C" {
 #endif
 
+#define TIMERS_TICK_COUNT_FOR_UNIT 3
 #define TIMERS_COUNT 5
 #define TIMER_0 0
 #define TIMER_1 1
