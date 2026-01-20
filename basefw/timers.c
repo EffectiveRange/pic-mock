@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <string.h>
 #include <xc.h>
 
@@ -60,15 +61,19 @@ void __reentrant timers_arm(uint8_t idx, timer_cb cb, uint16_t time) {
   struct timer_state_t *timer = &timers[idx];
   // seq_lock is a busy flag (bit0).
   // ISR skips timers while main is updating multi-byte fields.
+  ISR_SAFE_BEGIN();
   timer->seq_lock = 1;
   timer->armed = 0;
+  ISR_SAFE_END();
   timer->cb = cb;
   timer->time_units = time;
   timer->time_units_left = time;
   ++timer->gen;
   timer->expired = 0;
+  ISR_SAFE_BEGIN();
   timer->armed = 1;
   timer->seq_lock = 0;
+  ISR_SAFE_END();
 }
 
 void __reentrant timers_dearm(uint8_t idx) {
@@ -87,7 +92,10 @@ void timers_expired() {
   uint8_t any_expired = 0;
   for (uint8_t i = 0; i < TIMERS_COUNT; ++i) {
     struct timer_state_t *timer = &timers[i];
-    if (!timer->armed || timer->expired)
+    ISR_SAFE_BEGIN();
+    uint8_t armed = timer->armed;
+    ISR_SAFE_END();
+    if (!armed || timer->expired)
       continue;
     // main thread is touching this timer
     // skip it
@@ -117,8 +125,13 @@ void timers_main() {
     struct timer_state_t *timer = &timers[i];
     pending_expiry_t *pending = &expired_cbs[i];
     pending->cb = NULL_FN;
-    if (timer->armed && timer->expired) {
+    ISR_SAFE_BEGIN();
+    uint8_t armed = timer->armed;
+    ISR_SAFE_END();
+    if (armed && timer->expired) {
+      ISR_SAFE_BEGIN();
       timer->armed = 0;
+      ISR_SAFE_END();
       timer->expired = 0;
       pending->cb = timer->cb;
       pending->gen = timer->gen;

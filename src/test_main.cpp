@@ -20,7 +20,9 @@ int main(int argc, char *argv[]) {
   std::promise<void> pr;
   auto mainfut = std::async(std::launch::async, PIC_HW_MAIN_ENTRY_POINT);
   const auto res = Catch::Session().run(argc, argv);
+  ISR_SAFE_BEGIN();
   _task_main_running = false;
+  ISR_SAFE_END();
   hw_interrupt();
   return res;
 }
