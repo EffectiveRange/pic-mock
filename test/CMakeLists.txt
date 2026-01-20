@@ -8,7 +8,7 @@ add_library(app_customization_test SHARED
     ../../mcc_generated_files/timer/src/tmr0.c
 )
 
-target_include_directories(app_customization_test PUBLIC . ../ ../../)
+target_include_directories(app_customization_test PUBLIC . ../src ../../)
 
 add_mock_library(pic18f16q20_pictest app_customization_test) 
 
