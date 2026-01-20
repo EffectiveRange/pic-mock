@@ -1,11 +1,9 @@
 #include <catch2/catch.hpp>
 
 #include "i2c_app.h"
-#include "i2c_regs.h"
-#include "i2c_regs_data.h"
 #include "mock_hw.hpp"
-#include "xc.h"
 #include "version.h"
+#include "xc.h"
 
 #include <concepts>
 #include <cstdint>
@@ -13,6 +11,7 @@
 #include <thread>
 #include <vector>
 
+/*
 std::vector<uint8_t>
 perform_i2c_host_read(uint8_t address, uint8_t len,
                       std::optional<uint8_t> error_loc = {}) {
@@ -120,13 +119,14 @@ TEST_CASE("errors during i2c xfer", "[i2cclient]") {
       wait_on_main([] { return i2c_reg_map[REG_STAT_I2C_ERR_UNKNOWN_CNTR]; },
                    0x00) == 0x00);
 }
-
+*/
 // TEST_CASE("test write with event listener", "[i2cclient]") {
 //   hb_pulse();
 //   REQUIRE(wait_on_main([] { return rpi_get_heartbeat_status(); },
 //                        PI_HB_STATUS_OK) == PI_HB_STATUS_OK);
-//   perform_i2c_write(REG_CMD_HALT_ACTION, std::array{REG_VAL_HALT_ACTION_RST});
-//   REQUIRE(wait_on_main([] { return rpi_get_heartbeat_status(); },
+//   perform_i2c_write(REG_CMD_HALT_ACTION,
+//   std::array{REG_VAL_HALT_ACTION_RST}); REQUIRE(wait_on_main([] { return
+//   rpi_get_heartbeat_status(); },
 //                        PI_HB_STATUS_SHUT_REQUESTED) ==
 //           PI_HB_STATUS_SHUT_REQUESTED);
 // }

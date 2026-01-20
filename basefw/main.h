@@ -10,6 +10,9 @@
 
 #include <xc.h>
 
+#if !defined(PIC_ASM)
+#define PIC_ASM(x) asm(x)
+#endif
 
 #if !defined(MAIN_THREAD_YIELD)
 #define MAIN_THREAD_YIELD()
@@ -36,11 +39,13 @@
 #define ISR_SAFE_END()
 #endif
 
+#if !defined(TASKS_MAIN_RUNNING)
+#define TASKS_MAIN_RUNNING 1
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-void init_application(void);
 
 #ifdef __cplusplus
 }

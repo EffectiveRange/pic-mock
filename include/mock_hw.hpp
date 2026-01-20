@@ -54,6 +54,8 @@ auto wait_on_main(F &&reg_access, U val, Duration dur = std::chrono::seconds(1))
 
 void hw_interrupt();
 
+void timer_tick();
+
 enum class INTERRUPT_TYPE { RISING_EDGE, FALLING_EDGE, BOTH_EDGE };
 
 #define DECLARE_HW_INTERRUPT_HANDLER_RISING(name)                              \

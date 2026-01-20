@@ -1,95 +1,57 @@
 #include "tasks.h"
-#include "common.h"
 #include "main.h"
-#include "mcc_generated_files/system/interrupt.h"
-#include "mcc_generated_files/system/system.h"
-#include "modules.h"
 #include "xc.h"
-#include <assert.h>
-#include <stdlib.h>
 
-static ATOMIC_UINT16 _tasks_initialized = 0;
+#include <stdbool.h>
 
-static struct task_descr_t _sentinel = {NULL, NULL, 1, NULL};
-
-static struct TaskList_t {
-  struct task_descr_t *task;
-} _tasks_list = {&_sentinel};
-
-void tasks_initialize() { _tasks_initialized = 1; }
-
-void tasks_deinitialize(void) { _tasks_initialized = 0; }
-
-void add_task(struct task_descr_t *taskd) {
-  assert(_tasks_initialized);
-  taskd->next = _tasks_list.task;
-  taskd->scheduled_from_irq = false;
-  _tasks_list.task = taskd;
-}
-
-void remove_task(struct task_descr_t *taskd) {
-  if (_tasks_list.task == taskd) {
-    _tasks_list.task = taskd->next;
-    return;
-  }
-  for (struct task_descr_t *t = _tasks_list.task; t != &_sentinel;
-       t = t->next) {
-    if (t->next == taskd) {
-      t->next = t->next->next;
-      break;
-    }
-  }
-}
-
-static void __idle() {
-  MAIN_THREAD_YIELD();
+struct task_descr_t {
+  task_run_fun task_fn;
+  bool running;
+  uint8_t run_count;
+  volatile uint8_t run_count_isr;
 };
 
-void schedule_task_from_irq(struct task_descr_t *taskd) {
+struct task_descr_t tasks[TASK_COUNT] = {};
+
+void task_init(uint8_t idx, task_run_fun fun, bool initial_running) {
+  struct task_descr_t *task = &tasks[idx];
+  task->task_fn = fun;
+  task->running = initial_running;
+  task->run_count = 0;
+  task->run_count_isr = 0;
+}
+
+void __reentrant task_schedule_from_irq(uint8_t idx) {
   ISR_SAFE_BEGIN();
-  taskd->scheduled_from_irq = true;
+  ++tasks[idx].run_count_isr;
   ISR_SAFE_END();
 }
 
-void run_tasks() {
-  assert(_tasks_initialized);
+void __reentrant task_schedule(uint8_t idx) { tasks[idx].running = true; }
 
-  while (true) {
-    MAIN_THREAD_CYCLE_BEGIN();
-    if (!_tasks_initialized) {
-      MAIN_THREAD_CYCLE_END();
+void task_main(void) {
+  for (;;) {
+    ISR_SAFE_BEGIN();
+    uint8_t running = TASKS_MAIN_RUNNING;
+    ISR_SAFE_END();
+    if (!running) {
       break;
     }
-    bool task_run = false;
-    for (struct task_descr_t *task = _tasks_list.task; task != &_sentinel;
-         task = task->next) {
-      if (!task->suspended) {
-        task_run = true;
-        task->task_fn(task);
+    for (uint8_t i = 0; i < TASK_COUNT; ++i) {
+      struct task_descr_t *task = &tasks[i];
+      ISR_SAFE_BEGIN();
+      uint8_t curr = task->run_count_isr;
+      ISR_SAFE_END();
+      if (task->run_count != curr) {
+        task->run_count = curr;
+        task->running = true;
+      }
+      if (task->running) {
+        task->running = false;
+        // clear running first in case
+        // cb reschedules it
+        task->task_fn();
       }
     }
-    if (!task_run) {
-      __idle();
-    }
-    // at the end of each cycle propagate from the IRQ thread suspensions
-    // TSAN suppression added for this section
-    for (struct task_descr_t *task = _tasks_list.task; task != &_sentinel;
-         task = task->next) {
-      if (task->scheduled_from_irq) {
-        task->suspended = false;
-        task->scheduled_from_irq = false;
-      }
-    }
-    MAIN_THREAD_CYCLE_END();
   }
 }
-
-static struct module_t tasks_module = {
-    .init = tasks_initialize,
-    .deinit = tasks_deinitialize,
-    .register_events = NULL,
-    .deregister_events = NULL,
-    .next = NULL,
-};
-
-void register_tasks_module(void) { add_module(&tasks_module); }

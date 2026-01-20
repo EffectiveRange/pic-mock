@@ -24,8 +24,8 @@ add_custom_command(
 
 add_custom_command(
     OUTPUT version.h
-    COMMAND ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../fw_ver.py ${PROJECT_SOURCE_DIR}/version.h.in
-    DEPENDS ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../fw_ver.py ${PROJECT_SOURCE_DIR}/version.h.in
+    COMMAND ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../fw_ver.py ${PROJECT_SOURCE_DIR}/src/version.h.in
+    DEPENDS ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../fw_ver.py ${PROJECT_SOURCE_DIR}/src/version.h.in
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
     )
 
@@ -38,7 +38,6 @@ add_library(mock_${TARGET_NAME} SHARED
 ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../src/mock_hw.cpp 
 ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../src/test_main.cpp
 ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../basefw/i2c_app.c
-${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../basefw/modules.c
 ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../basefw/tasks.c
 ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../basefw/timers.c
 )

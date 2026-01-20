@@ -22,6 +22,9 @@ void execSleep(void);
 
 #define __nop()
 
+#define __far
+#define __reentrant
+
 #define SLEEP() execSleep()
 #define MAIN_THREAD_YIELD() execSleep()
 #define MAIN_THREAD_CYCLE_BEGIN() _MAIN_THREAD_CYCLE_BEGIN()
@@ -30,6 +33,10 @@ void execSleep(void);
 #define MAIN_THREAD_EXCLUSIVE_END() _MAIN_THREAD_EXCLUSIVE_END()
 #define ISR_SAFE_BEGIN() _MAIN_THREAD_EXCLUSIVE_BEGIN()
 #define ISR_SAFE_END() _MAIN_THREAD_EXCLUSIVE_END()
+#define PIC_ASM(x)
+#define TASKS_MAIN_RUNNING _task_main_running
+
+extern volatile bool _task_main_running;
 
 void _MAIN_THREAD_CYCLE_BEGIN(void);
 void _MAIN_THREAD_CYCLE_END(void);

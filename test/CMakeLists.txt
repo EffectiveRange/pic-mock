@@ -3,12 +3,12 @@
 find_package(Catch2 REQUIRED)
 
 add_library(app_customization_test SHARED 
-    app.c 
-    i2c_regs.c 
+    app.c
     ../../mcc_generated_files/i2c_client/src/i2c1.c
+    ../../mcc_generated_files/timer/src/tmr0.c
 )
 
-target_include_directories(app_customization_test PUBLIC . ../../)
+target_include_directories(app_customization_test PUBLIC . ../src ../../)
 
 add_mock_library(pic18f16q20_pictest app_customization_test) 
 

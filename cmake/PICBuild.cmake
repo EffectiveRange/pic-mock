@@ -1,10 +1,12 @@
-find_program(MCHP_PROJ_GEN prjMakefilesGenerator.sh REQUIRED)
 
-message(STATUS "MCHP Project generator at: ${MCHP_PROJ_GEN}")
 
 
 function(add_pic_fw_target SOURCE_DIR PROJECT_FILE)
 
+    find_program(MCHP_PROJ_GEN prjMakefilesGenerator.sh REQUIRED)
+
+    message(STATUS "MCHP Project generator at: ${MCHP_PROJ_GEN}")
+    
     execute_process(COMMAND ${MCHP_PROJ_GEN} ${SOURCE_DIR}
         OUTPUT_VARIABLE OUT_VAR
         ERROR_VARIABLE ERR_VAR
