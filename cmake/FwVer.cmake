@@ -6,7 +6,9 @@ function(pic_fw_get_semver OUTPUT_NAME)
         RESULT_VARIABLE fw_ver_result
         OUTPUT_VARIABLE fw_ver 
         COMMAND_ERROR_IS_FATAL ANY
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
     string(STRIP ${fw_ver} fw_ver)
     set(${OUTPUT_NAME} ${fw_ver} PARENT_SCOPE)    
+    message(STATUS "Current source directory: ${CMAKE_CURRENT_SOURCE_DIR}, firmware version: ${fw_ver}")
 endfunction()

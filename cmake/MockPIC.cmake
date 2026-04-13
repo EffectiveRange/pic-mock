@@ -22,6 +22,8 @@ add_custom_command(
     DEPENDS ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../picpre.py 
     )
 
+message(STATUS "Project source directory: ${PROJECT_SOURCE_DIR}, target file: ${TARGET_FILE}, generated source: ${CMAKE_CURRENT_BINARY_DIR}/${BASE}.c, generated header: ${CMAKE_CURRENT_BINARY_DIR}/${BASE}.h")
+
 add_custom_command(
     OUTPUT version.h
     COMMAND ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../fw_ver.py ${PROJECT_SOURCE_DIR}/src/version.h.in
