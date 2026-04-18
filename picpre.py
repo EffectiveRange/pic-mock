@@ -200,6 +200,11 @@ def main():
                         f"volatile {matchd['structname']} {matchd['regname']}"
                     )
                 elif regstruct_typedef_match:
+                    base_name = regstruct_typedef_match.group(1)
+                    if base_name in register_macro_names:
+                        outheader.write(
+                            f"struct {{ unsigned char __value; }} {base_name}bits;\n"
+                        )
                     outheader.write(
                         f"unsigned __value;{regstruct_typedef_match.group(0)}\n"
                     )
