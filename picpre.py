@@ -119,6 +119,7 @@ def main():
         "U2RXPPS",
         "WREG",
     }
+
     regdef_re = re.compile(
         r"\s*extern\s*(?P<cvqual>volatile|const)\s*unsigned (?P<typename>char|short|long)\s+(?P<regname>\w+)\s*(?:\[(?P<arraysz>\d+)\])?\s+__at\((?P<address>0x[0-9a-fA-F]+)\)\s*;"
     )
@@ -127,6 +128,7 @@ def main():
     )
 
     reg_struct_typedef_re = re.compile(r"\s*\}\s*(\w+)bits_t\s*;")
+    bitfield_line_re = re.compile(r"\s*unsigned\s+(\w+)\s*:\d+")
 
     parser = argparse.ArgumentParser(description="pic header preprocessor")
     parser.add_argument(
@@ -143,6 +145,17 @@ def main():
     os.makedirs(outdir, exist_ok=True)
     with open(inputfile, "rb") as f:
         lines = f.readlines()
+
+        # Pass 1: collect all register names that become macros (non-array registers),
+        # so we can skip conflicting bitfield members with the same name in pass 2.
+        register_macro_names = set()
+        for line in lines:
+            m = regdef_re.match(line.decode())
+            if m:
+                d = m.groupdict()
+                if d["arraysz"] is None:
+                    register_macro_names.add(d["regname"])
+
         regdefintions = []
         regmacrodefs = []
         with open(outdir / inputfile.name, "w") as outheader:
@@ -151,6 +164,9 @@ def main():
                 regdef_match = regdef_re.match(decoded)
                 regstructdef_match = reg_structdef_re.match(decoded)
                 regstruct_typedef_match = reg_struct_typedef_re.match(decoded)
+                bitfield_match = bitfield_line_re.match(decoded)
+                if bitfield_match and bitfield_match.group(1) in register_macro_names:
+                    continue
                 if regdef_match:
                     matchd = regdef_match.groupdict()
                     if matchd["regname"] in regdef_exception_list:
