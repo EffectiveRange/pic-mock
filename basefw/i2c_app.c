@@ -8,17 +8,6 @@
 #include <mcc_generated_files/i2c_client/i2c1.h>
 #include <mcc_generated_files/i2c_client/i2c_client_interface.h>
 
-struct i2c_reg_descr {
-  uint8_t listener_task;
-  uint8_t clear_on_read : 1;
-  uint8_t written_by_isr : 1;
-  uint8_t immutable : 1;
-  uint8_t reserved : 5;
-  uint8_t clear_on_read_mask;
-  volatile uint8_t dirty_isr;
-  uint8_t dirty_main;
-  uint8_t invoke_task;
-};
 
 #include "i2c_regs.c"
 

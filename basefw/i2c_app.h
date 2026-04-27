@@ -50,7 +50,7 @@ void __reentrant i2c_client_write_register_bit(uint8_t address, uint8_t pos,
 // reg 1: REG_VAL_I2C_CLIENT_ERRORs + STICKY bit ( i2c err + | 0x80 sticky bit)
 //   bit0-6: i2c err status
 //   bit7:   always 1
-#define REG_STAT_I2C_ERR_AND_STICKY_ADDR 0x1
+#define REG_STAT_I2C_ERR_AND_STICKY_ADDR ((uint8_t)0x1)
 #define REG_VAL_I2C_CLIENT_ERROR_NONE 0
 #define REG_VAL_I2C_CLIENT_ERROR_BUS_COLLISION 1
 #define REG_VAL_I2C_CLIENT_ERROR_WRITE_COLLISION 2
@@ -58,11 +58,23 @@ void __reentrant i2c_client_write_register_bit(uint8_t address, uint8_t pos,
 #define REG_VAL_I2C_CLIENT_ERROR_TRANSMIT_UNDERFLOW 4
 #define REG_VAL_I2C_CLIENT_ERROR_READ_UNDERFLOW 5
 
-#define REG_STAT_I2C_ERR_BUS_COLLISION_CNTR 0x2
-#define REG_STAT_I2C_ERR_WRITE_COLLISION_CNTR 0x3
-#define REG_STAT_I2C_ERR_RECEIVE_OVERFLOW_CNTR 0x4
-#define REG_STAT_I2C_ERR_TRANSMIT_UNDERFLOW_CNTR 0x5
-#define REG_STAT_I2C_ERR_READ_UNDERFLOW_CNTR 0x6
-#define REG_STAT_I2C_ERR_UNKNOWN_CNTR 0x7
+#define REG_STAT_I2C_ERR_BUS_COLLISION_CNTR ((uint8_t)0x2)
+#define REG_STAT_I2C_ERR_WRITE_COLLISION_CNTR ((uint8_t)0x3)
+#define REG_STAT_I2C_ERR_RECEIVE_OVERFLOW_CNTR ((uint8_t)0x4)
+#define REG_STAT_I2C_ERR_TRANSMIT_UNDERFLOW_CNTR ((uint8_t)0x5)
+#define REG_STAT_I2C_ERR_READ_UNDERFLOW_CNTR ((uint8_t)0x6)
+#define REG_STAT_I2C_ERR_UNKNOWN_CNTR ((uint8_t)0x7)
+
+struct i2c_reg_descr {
+  uint8_t listener_task;
+  uint8_t clear_on_read : 1;
+  uint8_t written_by_isr : 1;
+  uint8_t immutable : 1;
+  uint8_t reserved : 5;
+  uint8_t clear_on_read_mask;
+  volatile uint8_t dirty_isr;
+  uint8_t dirty_main;
+  uint8_t invoke_task;
+};
 
 #endif /* I2C_APP_H */
