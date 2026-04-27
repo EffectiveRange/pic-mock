@@ -65,6 +65,8 @@ void __reentrant i2c_client_write_register_bit(uint8_t address, uint8_t pos,
 #define REG_STAT_I2C_ERR_READ_UNDERFLOW_CNTR ((uint8_t)0x6)
 #define REG_STAT_I2C_ERR_UNKNOWN_CNTR ((uint8_t)0x7)
 
+#define REG_STAT_0_ADDR ((uint8_t)0xA)
+
 struct i2c_reg_descr {
   uint8_t listener_task;
   uint8_t clear_on_read : 1;

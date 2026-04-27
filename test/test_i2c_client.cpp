@@ -11,7 +11,11 @@
 #include <thread>
 #include <vector>
 
-/*
+#include "application.h"
+
+extern uint8_t i2c_reg_map[I2C_CLIENT_LOCATION_SIZE];
+extern volatile uint8_t i2c_shadow_map[I2C_CLIENT_LOCATION_SIZE];
+
 std::vector<uint8_t>
 perform_i2c_host_read(uint8_t address, uint8_t len,
                       std::optional<uint8_t> error_loc = {}) {
@@ -119,7 +123,8 @@ TEST_CASE("errors during i2c xfer", "[i2cclient]") {
       wait_on_main([] { return i2c_reg_map[REG_STAT_I2C_ERR_UNKNOWN_CNTR]; },
                    0x00) == 0x00);
 }
-*/
+
+// TODO: add test case for write with listener
 // TEST_CASE("test write with event listener", "[i2cclient]") {
 //   hb_pulse();
 //   REQUIRE(wait_on_main([] { return rpi_get_heartbeat_status(); },
